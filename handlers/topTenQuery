@@ -1,0 +1,19 @@
+//Query database for top ten scores.
+const mysql = require("mysql2");
+
+const topTenQuery = (response) => {
+    connection.query(
+
+        'SELECT name, score, date FROM highscores ORDER BY score DESC LIMIT 10',
+
+        function (queryError, results, fields) {
+            if (queryError) {
+                console.log(`Error getting highscores from database: ${queryError}`);
+                return response.status(500).json({ error: `Error getting highscores from database: ${queryError}`});
+            }
+            response.status(200).json(results);
+        }
+    );
+}; 
+
+module.exports = topTenQuery;
