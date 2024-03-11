@@ -1,10 +1,10 @@
 //Query database for top ten scores.
 const mysql = require("mysql2");
 
-const topTenQuery = (response) => {
+const topTenQuery = (connection, response) => {
     connection.query(
 
-        'SELECT name, score, date FROM highscores ORDER BY score DESC LIMIT 10',
+        'SELECT name, score, date, RANK() OVER (ORDER BY score DESC) rank FROM highscores LIMIT 10',
 
         function (queryError, results, fields) {
             if (queryError) {
