@@ -1,18 +1,25 @@
 // Define function to post score to database.
 const mysql = require("mysql2");
+const {currentDateForDatabase} = require("./dateFormatter");
 
 const insertScore = (connection, request, response) => {
     const body = request.body;
 
-    // Validate name to ensure contains exactly 3 upper-case alphabetic characters.
+    // Validation: name exactly 3 upper-case alphabetic characters, score up to 3 numeric characters.
     if (!/^[A-Z]{3}$/.test(body.name)) {
         return response.status(400).json({ message: `Bad request: Name must be exactly 3 upper-case alphabetic characters` });
     };
+    if (!/^[0-9]{3}$/.test(body.score)) {
+        return response.status(400).json({ message: `Bad request: Score must contain up to three numeric characters only` });
+    }
+
+    const entryDate = currentDateForDatabase();
+    console.log(entryDate);
 
     connection.query(
 
         'INSERT INTO highscores ( name, score, date ) VALUES ( ? , ? , ? )',
-        [ body.name , body.score , body.date ],
+        [ body.name , body.score , entryDate ],
 
         function (postError, results, fields) {
             if (postError) {
@@ -21,7 +28,6 @@ const insertScore = (connection, request, response) => {
             } else {
 
                 const newId = results.insertId;
-
                 connection.query(
 
                     'WITH scorerank AS ( SELECT * , RANK() OVER (ORDER BY score DESC) AS rank FROM highscores) SELECT * FROM scorerank WHERE id = ? ORDER BY rank',
