@@ -1,5 +1,3 @@
-const { currentDateForDatabase } = require("./dateFormatter");
-
 const validateName = async (name) => {
     console.log(`Attempting to validate name: ${name}...`);
     if (!/^[A-Z]{3}$/.test(name)) {
@@ -16,20 +14,19 @@ const validateScore = async (score) => {
 
 const postToDatabase = async (connection, name, score) => {
     return new Promise((resolve, reject) => {
-        const entryDate = currentDateForDatabase();
         connection.query(
 
             `INSERT INTO highscores 
-            ( name , score , date ) 
-            VALUES ( ? , ? , ? )`,
+            ( name , score ) 
+            VALUES ( ? , ? )`,
 
-            [ name , score , entryDate ],
+            [ name , score ],
 
             (error, results, fields) => {
                 if(error) {
                     reject (`Error posting highscore. [postToDatabase]`)
                 }
-                resolve({ id: results.insertId, name, score, date: entryDate });
+                resolve({ id: results.insertId, name, score });
             }
         )
     })

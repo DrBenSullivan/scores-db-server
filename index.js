@@ -4,7 +4,7 @@ const express = require("express");
 const { connectionPool , establishConnectionPool } = require("./databaseConnection");
 const topTenQuery = require("./handlers/topTenQuery");
 const insertScore = require("./handlers/insertScore");
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000; // EDIT TO SUIT YOUR REQUIREMENTS
 
 // Initialise server.
 const app = express();

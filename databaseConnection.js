@@ -2,10 +2,10 @@ const mysql = require("mysql2");
 
 // Database connection pool details.
 const connectionPool = mysql.createPool({
-    host: "localhost",
-    user: "root",
-    password: "admin",
-    database: "highscores",
+    host: "xxx", // EDIT TO SUIT YOUR REQUIREMENTS
+    user: "xxx", // EDIT TO SUIT YOUR REQUIREMENTS
+    password: "xxx", // EDIT TO SUIT YOUR REQUIREMENTS
+    database: "scores",
     connectionLimit: 4,
 });
 
