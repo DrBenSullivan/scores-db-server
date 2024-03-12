@@ -10,3 +10,11 @@ exports.currentDateForDatabase = () => {
         const currentYear = dateTime.getFullYear();
         return `${currentYear}${currentMonth}${currentDay}`;
 };
+
+exports.dateFromDatabase = result => {
+    const stringDate = toString(result.date);
+    const year = parseInt(substring(0, 3, stringDate));
+    const month = parseInt(substring(4, 5, stringDate)) - 1;
+    const day = parseInt(substring(6, 7, stringDate));
+    return Date(year, month, day);
+};

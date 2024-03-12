@@ -1,51 +1,107 @@
-// Define function to post score to database.
-const mysql = require("mysql2");
-const {currentDateForDatabase} = require("./dateFormatter");
+const { currentDateForDatabase } = require("./dateFormatter");
 
-const insertScore = (connection, request, response) => {
-    const body = request.body;
+const validateName = async (name) => {
+    console.log(`Attempting to validate name: ${name}...`);
+    if (!/^[A-Z]{3}$/.test(name)) {
+        throw new Error(`Name ${name} is invalid`);
+    }
+}
 
-    // Validation: name exactly 3 upper-case alphabetic characters, score up to 3 numeric characters.
-    if (!/^[A-Z]{3}$/.test(body.name)) {
-        return response.status(400).json({ message: `Bad request: Name must be exactly 3 upper-case alphabetic characters` });
-    };
-    if (!/^[0-9]{3}$/.test(body.score)) {
-        return response.status(400).json({ message: `Bad request: Score must contain up to three numeric characters only` });
+const validateScore = async (score) => {
+    console.log(`Attempting to validate score: ${score}...`)
+    if (!/^[0-9]{1,3}$/.test(score)) {
+        throw new Error(`Score ${score} is invalid`);
+    }
+}
+
+const postToDatabase = async (connection, name, score) => {
+    return new Promise((resolve, reject) => {
+        const entryDate = currentDateForDatabase();
+        connection.query(
+
+            `INSERT INTO highscores 
+            ( name , score , date ) 
+            VALUES ( ? , ? , ? )`,
+
+            [ name , score , entryDate ],
+
+            (error, results, fields) => {
+                if(error) {
+                    reject (`Error posting highscore. [postToDatabase]`)
+                }
+                resolve({ id: results.insertId, name, score, date: entryDate });
+            }
+        )
+    })
+}
+
+const getRank = async (connection, id) => {
+    return new Promise((resolve, reject) => {
+        connection.query(
+
+            `WITH scorerank 
+            AS (SELECT *, 
+                    RANK() OVER (ORDER BY score DESC) AS rank 
+                FROM highscores)
+            SELECT * 
+            FROM scorerank
+            WHERE id = ?
+            ORDER BY rank
+            LIMIT 1`,
+
+            [ id ],
+
+            (error, results, fields) => {
+                if(error){
+                    reject(`Error getting rank [getRank]`)
+                }
+                resolve(results)
+            }
+        )
+    })
+}
+
+const insertScore = async (connection, request, response) => {
+    const requestBody = request.body;
+    console.log(requestBody);
+    try {
+        await validateName(requestBody.name);
+        console.log(`Valid name submitted.`);
+    } catch (nameValidationError) {
+        console.error(`${nameValidationError} [validateName] ${requestBody.Name}`);
+        response.status(400).json({
+            error: `${nameValidationError}: Name must be exactly 3 upper-case alphabetic characters.`
+        })
+        return;
     }
 
-    const entryDate = currentDateForDatabase();
-    console.log(entryDate);
-
-    connection.query(
-
-        'INSERT INTO highscores ( name, score, date ) VALUES ( ? , ? , ? )',
-        [ body.name , body.score , entryDate ],
-
-        function (postError, results, fields) {
-            if (postError) {
-                console.log(`Error adding highscore to database: ${postError}`);
-                return response.status(500).json({ error: `Error adding highscore to database: ${postError}`});
-            } else {
-
-                const newId = results.insertId;
-                connection.query(
-
-                    'WITH scorerank AS ( SELECT * , RANK() OVER (ORDER BY score DESC) AS rank FROM highscores) SELECT * FROM scorerank WHERE id = ? ORDER BY rank',
-                    [ newId ],
-                    
-                    function (rankError, entryWithRank, rankFields) {
-                        if (rankError) {
-                            console.log(`Error getting rank from database: ${rankError}`);
-                            return response.status(500).json({ error: `Error getting rank from database: ${rankError}`});
-
-                        } else {
-                        response.status(201).json({ message: `Entry successfully added to database`, entry: entryWithRank, });
-                        }
-                    }
-                );
-            };
-        }
-    );
-};
+    try {
+        await validateScore(requestBody.score);
+        console.log(`Valid score submitted.`);
+    } catch (scoreValidationError) {
+        console.error(`${scoreValidationError} [validateScore] ${requestBoy.score}`);
+        response.status(400).json({
+            error: `${scoreValidationError}: Score must contain a maximum of 3 numeric characters.`
+        })
+        return;
+    }
+    
+    try {
+        const postedValues = await postToDatabase(connection, requestBody.name, requestBody.score);
+        console.log(`Entry successfully posted to database: ${JSON.stringify(postedValues)} [postToDatabase]`)
+        const rankResults = await getRank(connection, postedValues.id );
+        console.log(`Rank retrieved from database: Rank = ${JSON.stringify(rankResults[0])} [getRank]`);
+        response.status(201).json({ 
+            success: `Highscore successfully posted!`, rankResults });
+    } catch (error) {
+        console.error(error);
+        response.status(500).json({
+            error: `Internal server error... Please try again later.`
+        });
+        return;
+    }
+}
 
 module.exports = insertScore;
+
+

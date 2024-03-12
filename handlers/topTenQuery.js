@@ -1,19 +1,30 @@
 //Query database for top ten scores.
-const mysql = require("mysql2");
+const queryTopScores = async (connection) => {
+    console.log(`Retrieving topScores from database...`)
+    return new Promise ((resolve, reject) => {
+        connection.query (
 
-const topTenQuery = (connection, response) => {
-    connection.query(
+            'SELECT name, score, date, RANK() OVER (ORDER BY score DESC) rank FROM highscores LIMIT 10',
 
-        'SELECT name, score, date, RANK() OVER (ORDER BY score DESC) rank FROM highscores LIMIT 10',
-
-        function (queryError, results, fields) {
-            if (queryError) {
-                console.log(`Error getting highscores from database: ${queryError}`);
-                return response.status(500).json({ error: `Error getting highscores from database: ${queryError}`});
+            (error, results, fields) => {
+            if (error) {
+                reject(`Error getting highscores from database [queryTopScores]`)
             }
-            response.status(200).json(results);
-        }
-    );
-}; 
+            resolve(results);
+            }
+        )
+    })
+}
+
+const topTenQuery = async (connection, response) => {
+    try {
+        const results = await queryTopScores(connection);
+        console.log(`Highscores successfully retrieved from database [queryTopSores]`);
+        response.status(200).json({ success: `Highscores successfully retrieved`, results });
+    } catch (queryError) {
+        console.error(queryError);
+        response.status(500).json({ error: `Internal server error... Please try again later` });
+    }
+}
 
 module.exports = topTenQuery;
